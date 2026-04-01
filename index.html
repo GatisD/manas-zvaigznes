@@ -116,12 +116,12 @@
       return `${d.getDate()}. ${months[d.getMonth()]}`;
     };
     
-    const getWeekDates = () => {
+    const getWeekDates = (weekOffset = 0) => {
       const today = new Date();
       const dayOfWeek = today.getDay();
       const monday = new Date(today);
-      monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-      
+      monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + (weekOffset * 7));
+
       const dates = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(monday);
@@ -305,24 +305,88 @@
     
     // Nedēļas statistika
     const WeekStats = ({ history, totalTasks }) => {
-      const weekDates = getWeekDates();
+      const [weekOffset, setWeekOffset] = useState(0);
+      const weekDates = getWeekDates(weekOffset);
       const today = getToday();
-      
+      const isCurrentWeek = weekOffset === 0;
+
       const weekData = weekDates.map(date => {
         const dayHistory = history[date];
         const completed = dayHistory ? dayHistory.filter(t => t.done).length : 0;
         const isToday = date === today;
         const isPast = date < today;
         const percentage = (completed / totalTasks) * 100;
-        
+
         return { date, completed, isToday, isPast, percentage };
       });
-      
+
       const totalStars = weekData.reduce((sum, d) => sum + d.completed, 0);
       const perfectDays = weekData.filter(d => d.completed === totalTasks).length;
-      
+
+      const weekLabel = `${formatDate(weekDates[0])} – ${formatDate(weekDates[6])}`;
+
       return (
         <div style={{ animation: 'slideIn 0.4s ease-out' }}>
+          {/* Nedēļas navigācija */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            background: 'white',
+            borderRadius: '16px',
+            padding: '10px 12px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)'
+          }}>
+            <button
+              onClick={() => setWeekOffset(prev => prev - 1)}
+              style={{
+                background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                width: '40px',
+                height: '40px',
+                fontSize: '18px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >◀</button>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#374151' }}>
+                {isCurrentWeek ? 'Šī nedēļa' : weekLabel}
+              </div>
+              {!isCurrentWeek && (
+                <div
+                  onClick={() => setWeekOffset(0)}
+                  style={{ fontSize: '11px', color: '#6366f1', cursor: 'pointer', marginTop: '2px' }}
+                >
+                  Atgriezties uz šo nedēļu
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setWeekOffset(prev => prev + 1)}
+              disabled={isCurrentWeek}
+              style={{
+                background: isCurrentWeek
+                  ? '#f3f4f6'
+                  : 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                width: '40px',
+                height: '40px',
+                fontSize: '18px',
+                cursor: isCurrentWeek ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isCurrentWeek ? 0.4 : 1
+              }}
+            >▶</button>
+          </div>
+
           {/* Nedēļas kopsavilkums */}
           <div style={{
             display: 'grid',
@@ -338,7 +402,7 @@
             }}>
               <div style={{ fontSize: '32px', marginBottom: '4px' }}>⭐</div>
               <div style={{ fontSize: '28px', fontWeight: 800, color: '#d97706' }}>{totalStars}</div>
-              <div style={{ fontSize: '12px', color: '#92400e' }}>zvaigznes šonedēļ</div>
+              <div style={{ fontSize: '12px', color: '#92400e' }}>zvaigznes {isCurrentWeek ? 'šonedēļ' : 'nedēļā'}</div>
             </div>
             <div style={{
               background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
@@ -351,7 +415,7 @@
               <div style={{ fontSize: '12px', color: '#059669' }}>perfektas dienas</div>
             </div>
           </div>
-          
+
           {/* Nedēļas dienas */}
           <div style={{
             background: 'white',
@@ -359,6 +423,17 @@
             padding: '16px',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
           }}>
+            {!isCurrentWeek && (
+              <div style={{
+                textAlign: 'center',
+                fontSize: '12px',
+                color: '#6b7280',
+                marginBottom: '10px',
+                fontWeight: 600
+              }}>
+                {weekLabel}
+              </div>
+            )}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -372,8 +447,8 @@
                     textAlign: 'center',
                     padding: '10px 4px',
                     borderRadius: '12px',
-                    background: day.isToday 
-                      ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' 
+                    background: day.isToday
+                      ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
                       : 'transparent',
                     border: day.isToday ? '2px solid #fbbf24' : '2px solid transparent'
                   }}
@@ -386,7 +461,7 @@
                   }}>
                     {getDayName(day.date)}
                   </div>
-                  
+
                   <div style={{
                     width: '36px',
                     height: '36px',
@@ -396,23 +471,23 @@
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '18px',
-                    background: day.completed === totalTasks 
+                    background: day.completed === totalTasks
                       ? 'linear-gradient(135deg, #34d399 0%, #10b981 100%)'
-                      : day.completed > 0 
+                      : day.completed > 0
                         ? 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)'
-                        : day.isPast 
+                        : day.isPast
                           ? '#fee2e2'
                           : '#f3f4f6'
                   }}>
-                    {day.completed === totalTasks ? '⭐' : 
-                     day.completed > 0 ? '◐' : 
+                    {day.completed === totalTasks ? '⭐' :
+                     day.completed > 0 ? '◐' :
                      day.isPast ? '○' : '·'}
                   </div>
-                  
+
                   <div style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: day.completed === totalTasks ? '#047857' : 
+                    color: day.completed === totalTasks ? '#047857' :
                            day.completed > 0 ? '#d97706' : '#9ca3af'
                   }}>
                     {day.completed}/{totalTasks}
@@ -421,7 +496,7 @@
               ))}
             </div>
           </div>
-          
+
           {/* Leģenda */}
           <div style={{
             display: 'flex',
