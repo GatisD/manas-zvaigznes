@@ -102,6 +102,11 @@
     
     // Datuma utilītas
     const getToday = () => new Date().toISOString().split('T')[0];
+    const getYesterday = () => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().split('T')[0];
+    };
     const getDayName = (dateStr) => {
       const days = ['Sv', 'P', 'O', 'T', 'C', 'Pk', 'S'];
       return days[new Date(dateStr).getDay()];
@@ -673,6 +678,9 @@
       
       const [loading, setLoading] = useState(false);
       const [showConfetti, setShowConfetti] = useState(false);
+      const [showYesterday, setShowYesterday] = useState(false);
+
+      const yesterday = getYesterday();
       
       const doneCount = tasks.filter(t => t.done).length;
       const allDone = doneCount === tasks.length;
@@ -713,6 +721,18 @@
       const resetTasks = () => {
         setTasks(defaultTasks.map(t => ({ ...t, done: false })));
         setChallenge('');
+      };
+
+      const toggleYesterdayTask = (id) => {
+        setHistory(prev => {
+          const yTasks = prev[yesterday] || defaultTasks.map(t => ({ ...t, done: false }));
+          const updated = {
+            ...prev,
+            [yesterday]: yTasks.map(t => t.id === id ? { ...t, done: !t.done } : t)
+          };
+          localStorage.setItem('starHistory', JSON.stringify(updated));
+          return updated;
+        });
       };
       
       const getNewChallenge = async () => {
@@ -906,6 +926,79 @@
                 >
                   🔄 Sākt no jauna (jaunai dienai)
                 </button>
+
+                {/* Vakardiena */}
+                <div style={{ marginTop: '10px' }}>
+                  <button
+                    onClick={() => setShowYesterday(!showYesterday)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: showYesterday
+                        ? 'rgba(219, 234, 254, 0.8)'
+                        : 'rgba(255, 255, 255, 0.6)',
+                      color: '#1e40af',
+                      border: '2px dashed #93c5fd',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'Nunito, sans-serif',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    📅 Vakardiena
+                    {history[yesterday] && (
+                      <span style={{
+                        background: '#bfdbfe',
+                        borderRadius: '20px',
+                        padding: '1px 8px',
+                        fontSize: '12px',
+                        color: '#1e40af'
+                      }}>
+                        {history[yesterday].filter(t => t.done).length}/{defaultTasks.length} ⭐
+                      </span>
+                    )}
+                    <span style={{ fontSize: '11px' }}>{showYesterday ? '▲' : '▼'}</span>
+                  </button>
+
+                  {showYesterday && (() => {
+                    const yTasks = history[yesterday] || defaultTasks.map(t => ({ ...t, done: false }));
+                    const yDone = yTasks.filter(t => t.done).length;
+                    return (
+                      <div style={{
+                        marginTop: '10px',
+                        background: 'rgba(219, 234, 254, 0.4)',
+                        borderRadius: '18px',
+                        padding: '14px',
+                        animation: 'slideIn 0.3s ease-out'
+                      }}>
+                        <div style={{
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: '#1e40af',
+                          marginBottom: '12px',
+                          textAlign: 'center'
+                        }}>
+                          {getFullDayName(yesterday)}, {formatDate(yesterday)} — {yDone}/{yTasks.length} ⭐
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {yTasks.map((task, i) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              onToggle={toggleYesterdayTask}
+                              index={i}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </>
             )}
             
